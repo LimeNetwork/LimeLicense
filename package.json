@@ -1,0 +1,40 @@
+{
+    "name": "limelicense",
+    "version": "1.0.1",
+    "description": "NodeJS RestAPI Backend for Licensing Systems.",
+    "main": "app.js",
+    "directories": {
+        "lib": "lib"
+    },
+    "scripts": {
+        "test": "nodemon app.js",
+        "start": "node app.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/LimeNetwork/LimeLicense.git"
+    },
+    "keywords": [
+        "license",
+        "lime",
+        "nodejs",
+        "restapi"
+    ],
+    "author": "MrMirhan",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/LimeNetwork/LimeLicense/issues"
+    },
+    "homepage": "https://github.com/LimeNetwork/LimeLicense#readme",
+    "dependencies": {
+        "connect-timeout": "^1.9.0",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "fs": "^0.0.1-security",
+        "http": "^0.0.1-security",
+        "mongoose": "^7.6.2",
+        "morgan": "^1.10.0",
+        "path": "^0.12.7",
+        "winston": "^3.11.0"
+    }
+}
