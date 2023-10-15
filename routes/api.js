@@ -5,6 +5,9 @@ const productRoute = require('./product');
 const customerRoute = require('./customer');
 const tokenRoute = require('./token');
 
+const tokenController = require('../controllers/token');
+
+
 router.use(function(req, res, next) {
     // is req.query is, check is there any key value equals to 'null' exclude key
     if (req.query) {
@@ -27,8 +30,40 @@ router.use(function(req, res, next) {
     next();
 })
 
-router.use('/product', productRoute);
-router.use('/customer', customerRoute);
-router.use('/token', tokenRoute);
+function authToken(req, res, next) {
+    let token = req.headers['authorization']
+    if (token == null) return res.status(401).json({
+        success: false,
+        message: 'No auth token given.'
+    });
+
+    if (token != process.env.AUTH_TOKEN) return res.status(401).json({
+        success: false,
+        message: 'Invalid auth token.'
+    });
+
+    next();
+}
+
+function checkAuthToken(req, res, next) {
+    let token = req.headers['authorization']
+    if (token == null) return res.status(401).json({
+        success: false,
+        message: 'No auth token given.'
+    });
+
+    if (token != process.env.CHECK_AUTH_TOKEN) return res.status(401).json({
+        success: false,
+        message: 'Invalid auth token.'
+    });
+
+    next();
+}
+
+router.use('/product', authToken, tokenController.productRoute);
+router.use('/customer', authToken, customerRoute);
+router.use('/token', authToken, tokenRoute);
+
+router.post('/token/check', checkAuthToken, tokenController.checkToken);
 
 module.exports = router;

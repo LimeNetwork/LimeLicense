@@ -26,6 +26,9 @@ app = express();
 
 httpServer = http.createServer(app);
 
+// Reveal ip when req.ip
+app.set('trust proxy', true)
+
 // Timeout
 
 app.use(timeout('25s'));

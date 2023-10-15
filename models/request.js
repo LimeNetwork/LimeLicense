@@ -3,17 +3,21 @@ const Schema = mongoose.Schema;
 const schema = new Schema({
     value: {
         type: String,
-        default: ""
+        required: true
     },
     authorized: {
         type: Boolean,
-        default: true
+        required: true
     },
     ip: {
         type: String,
         required: true
     },
     hwid: {
+        type: String,
+        required: true
+    },
+    message: {
         type: String,
         required: true
     },

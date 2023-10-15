@@ -13,6 +13,10 @@ const schema = new Schema({
         type: String,
         required: true
     },
+    end_date: {
+        type: String,
+        default: "never"
+    },
     max_ip: {
         type: Number,
         default: 1
