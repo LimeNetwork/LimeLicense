@@ -1,30 +1,18 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const schema = new Schema({
-    name: {
+    customer: {
         type: String,
         required: true,
     },
-    description: {
-        type: String,
-        default: ""
-    },
-    price: {
+    total: {
         type: Float32Array,
         required: true,
     },
-    discountedPrice: {
+    subtotal: {
         type: Float32Array,
-        default: 0
-    },
-    discountActive: {
-        type: Boolean,
-        default: false
-    },
-    stock: {
-        type: Number,
-        default: 100
-    },
+        required: true,
+    }
 }, { timestamps: true })
 
 module.exports = mongoose.model('product', schema);

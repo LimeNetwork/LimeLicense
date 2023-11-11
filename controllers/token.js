@@ -7,7 +7,7 @@ async function uuidv4() {
         let r = Math.random() * 16 | 0,
             v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16)
-    })
+    }).toUpperCase();
 }
 
 module.exports.generateToken = async(req, res, next) => {
@@ -66,6 +66,51 @@ module.exports.generateToken = async(req, res, next) => {
             error: error.message
         })
     }
+}
+
+// massCreate only creates token and saves don't push to customer get count from body
+module.exports.massCreate = async(req, res, next) => {
+    let { count, end_date } = req.body;
+
+    let tokens = [];
+
+    // control end_date if it's valid
+    if (end_date) {
+        let date = new Date(end_date);
+        if (date === 'Invalid Date') {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid end_date'
+            })
+        }
+    }
+
+    for (let i = 0; i < count; i++) {
+        const token = await uuidv4();
+
+        const Token = new TokenModel({
+            value: token,
+            end_date: end_date || 'never'
+        })
+
+        try {
+            await Token.save();
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: 'Internal Server Error',
+                error: error.message
+            })
+        }
+
+        tokens.push(Token.toObject());
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: 'Tokens generated successfully',
+        data: tokens
+    })
 }
 
 module.exports.getTokens = async(req, res, next) => {
@@ -167,6 +212,20 @@ module.exports.assignIp = async(req, res, next) => {
         })
     }
 
+    if (Token.is_active === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not active'
+        })
+    }
+
+    if (Token.is_changeable === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not changeable'
+        })
+    }
+
     // check max_ip and assigned_ips
     if (Token.max_ip <= Token.assigned_ips.length) {
         return res.status(400).json({
@@ -220,6 +279,20 @@ module.exports.assignHWID = async(req, res, next) => {
         return res.status(404).json({
             success: false,
             message: 'Token not found'
+        })
+    }
+
+    if (Token.is_active === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not active'
+        })
+    }
+
+    if (Token.is_changeable === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not changeable'
         })
     }
 
@@ -279,6 +352,20 @@ module.exports.removeIp = async(req, res, next) => {
         })
     }
 
+    if (Token.is_active === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not active'
+        })
+    }
+
+    if (Token.is_changeable === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not changeable'
+        })
+    }
+
     // check ip exists
     let ipExists = Token.assigned_ips.find(item => item === ip);
     if (!ipExists) {
@@ -315,6 +402,20 @@ module.exports.removeHWID = async(req, res, next) => {
         return res.status(404).json({
             success: false,
             message: 'Token not found'
+        })
+    }
+
+    if (Token.is_active === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not active'
+        })
+    }
+
+    if (Token.is_changeable === false) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not changeable'
         })
     }
 
@@ -388,8 +489,15 @@ module.exports.updateToken = async(req, res, next) => {
 
     // control end_date if it's valid
     if (end_date) {
-        let date = new Date(end_date);
-        if (date === 'Invalid Date') {
+        try {
+            let date = new Date(end_date);
+            if (date === 'Invalid Date') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid end_date'
+                })
+            }
+        } catch (error) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid end_date'

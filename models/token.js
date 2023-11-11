@@ -11,11 +11,19 @@ const schema = new Schema({
     },
     user: {
         type: String,
-        required: true
+        required: false
+    },
+    product: {
+        type: String,
+        required: false
     },
     end_date: {
         type: String,
         default: "never"
+    },
+    is_changeable: {
+        type: Boolean,
+        default: true
     },
     max_ip: {
         type: Number,

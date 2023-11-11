@@ -1,9 +1,25 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const schema = new Schema({
+    name: {
+        type: String,
+        required: true,
+    },
+    mail: {
+        type: String,
+        required: true,
+    },
     discord_id: {
         type: String,
         required: true,
+    },
+    balance: {
+        type: Number,
+        default: 0
+    },
+    servers: {
+        type: Array,
+        default: []
     },
     have_products: {
         type: Array,
@@ -13,9 +29,25 @@ const schema = new Schema({
         type: Array,
         default: []
     },
-    servers: {
+    invoices: {
         type: Array,
         default: []
+    },
+    hwids: {
+        type: Array,
+        default: []
+    },
+    ips: {
+        type: Array,
+        default: []
+    },
+    is_admin: {
+        type: Boolean,
+        default: false
+    },
+    is_banned: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true })
 
