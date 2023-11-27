@@ -580,6 +580,28 @@ module.exports.checkToken = async(req, res, next) => {
             success: false,
             message: 'IP isn\'t exists'
         })
+    } else {
+        // check if ip is valid
+        let ipRegex = new RegExp('^([0-9]{1,3}\.){3}[0-9]{1,3}$');
+        if (!ipRegex.test(ip)) {
+            await createRequest(token, ip, hwid, false, 'Invalid IP');
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid IP'
+            })
+        }
+        // check Token have enough ip count
+        if (Token.max_ip <= Token.assigned_ips.length) {
+            await createRequest(token, ip, hwid, false, 'Max IP limit reached');
+            return res.status(400).json({
+                success: false,
+                message: 'Max IP limit reached'
+            })
+        } else {
+            // add ip to assigned_ips
+            Token.assigned_ips.push(ip);
+            await Token.save();
+        }
     }
 
     // check request client ip is equal to assigned ip
