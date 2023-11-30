@@ -7,6 +7,7 @@ const tokenRoute = require('./token');
 
 const tokenController = require('../controllers/token');
 
+const { authToken, checkAuthToken } = require('../middlewares/authentication');
 
 router.use(function(req, res, next) {
     // is req.query is, check is there any key value equals to 'null' exclude key
@@ -29,36 +30,6 @@ router.use(function(req, res, next) {
 
     next();
 })
-
-function authToken(req, res, next) {
-    let token = req.headers['authorization']
-    if (token == null) return res.status(401).json({
-        success: false,
-        message: 'No auth token given.'
-    });
-
-    if (token != process.env.AUTH_TOKEN) return res.status(401).json({
-        success: false,
-        message: 'Invalid auth token.'
-    });
-
-    next();
-}
-
-function checkAuthToken(req, res, next) {
-    let token = req.headers['authorization']
-    if (token == null) return res.status(401).json({
-        success: false,
-        message: 'No auth token given.'
-    });
-
-    if (token != process.env.CHECK_AUTH_TOKEN) return res.status(401).json({
-        success: false,
-        message: 'Invalid auth token.'
-    });
-
-    next();
-}
 
 router.use('/product', authToken, productRoute);
 router.use('/customer', authToken, customerRoute);

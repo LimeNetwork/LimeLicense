@@ -77,12 +77,10 @@ app.use('/api', apiRouter); // API Router
 
 app.use(haltOnTimedout);
 
-app.use(haltOnTimedout);
-
 async function main() {
 
     await Promise.all([
-        httpServer.listen(process.env.HTTP_PORT, () => console.log('App is listening on url http://' + process.env.API_URL))
+        httpServer.listen(process.env.HTTP_PORT, () => console.log('App is listening on url http://' + process.env.API_URL + ':' + process.env.HTTP_PORT)),
     ])
 }
 

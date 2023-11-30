@@ -220,25 +220,25 @@ module.exports.getTokens = async(req, res, next) => {
             message: 'Tokens fetched successfully',
             data: tokens
         })
-    }
+    } else {
+        // if page and limit return paginated tokens
+        let options = {
+            page: page || 1,
+            limit: limit || 10,
+            sort: { createdAt: -1 }
+        }
 
-    // if page and limit return paginated tokens
-    let options = {
-        page: page || 1,
-        limit: limit || 10,
-        sort: { createdAt: -1 }
-    }
+        let tokens;
 
-    let tokens;
-
-    try {
-        tokens = await TokenModel.paginate(filter, options);
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Internal Server Error',
-            error: error.message
-        })
+        try {
+            tokens = await TokenModel.paginate(filter, options);
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: 'Internal Server Error',
+                error: error.message
+            })
+        }
     }
 
     return res.status(200).json({
@@ -399,7 +399,14 @@ module.exports.assignToken = async(req, res, next) => {
         })
     }
 
-    let User = await CustomerModel.findOne({ _id: Token.user });
+    if (Token.user) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token already assigned'
+        })
+    }
+
+    let User = await CustomerModel.findOne({ _id: user });
     if (!User) {
         return res.status(404).json({
             success: false,
@@ -468,7 +475,6 @@ module.exports.assignToken = async(req, res, next) => {
         }
     })
 }
-
 
 module.exports.removeIp = async(req, res, next) => {
     let { token, ip } = req.body;

@@ -9,6 +9,18 @@ const schema = new Schema({
         type: String,
         default: ""
     },
+    short_description: {
+        type: String,
+        default: ""
+    },
+    featured_image: {
+        type: String,
+        default: ""
+    },
+    images: {
+        type: Array,
+        default: []
+    },
     price: {
         type: mongoose.Decimal128,
         required: true,

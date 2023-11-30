@@ -3,7 +3,7 @@ const router = express.Router();
 const customerController = require('../controllers/customer');
 
 // Create a new customer
-router.post('/', customerController.createCustomer);
+router.post('/create', customerController.createCustomer);
 
 // Get all customers
 router.get('/', customerController.getAllCustomers);
@@ -16,5 +16,20 @@ router.put('/:customerId', customerController.updateCustomerById);
 
 // Delete a customer by ID
 router.delete('/:customerId', customerController.deleteCustomerById);
+
+// Get a specific customer by Discord ID
+router.get('/discord/:discordId', customerController.getCustomerByDiscordId);
+
+// addProductToCustomer
+router.post('/addProduct', customerController.addProductToCustomer);
+
+// removeProductFromCustomer
+router.post('/removeProduct', customerController.removeProductFromCustomer);
+
+// addTokenToCustomer
+router.post('/addToken', customerController.addTokenToCustomer);
+
+// removeTokenFromCustomer
+router.post('/removeToken', customerController.removeTokenFromCustomer);
 
 module.exports = router;
