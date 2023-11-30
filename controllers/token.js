@@ -572,36 +572,24 @@ module.exports.checkToken = async(req, res, next) => {
         }
     }
 
-    // check ip exists
-    let ipExists = Token.assigned_ips.find(item => item === ip);
-    if (!ipExists) {
-        await createRequest(token, ip, hwid, false, 'IP isn\'t exists');
+    // check if ip is valid
+    let ipRegex = new RegExp('^([0-9]{1,3}\.){3}[0-9]{1,3}$');
+    if (!ipRegex.test(ip)) {
+        await createRequest(token, ip, hwid, false, 'Invalid IP');
         return res.status(400).json({
             success: false,
-            message: 'IP isn\'t exists'
+            message: 'Invalid IP'
         })
-    } else {
-        // check if ip is valid
-        let ipRegex = new RegExp('^([0-9]{1,3}\.){3}[0-9]{1,3}$');
-        if (!ipRegex.test(ip)) {
-            await createRequest(token, ip, hwid, false, 'Invalid IP');
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid IP'
-            })
-        }
-        // check Token have enough ip count
-        if (Token.max_ip <= Token.assigned_ips.length) {
-            await createRequest(token, ip, hwid, false, 'Max IP limit reached');
-            return res.status(400).json({
-                success: false,
-                message: 'Max IP limit reached'
-            })
-        } else {
-            // add ip to assigned_ips
-            Token.assigned_ips.push(ip);
-            await Token.save();
-        }
+    }
+
+    // check if hwid is valid
+    let hwidRegex = new RegExp('^[0-9A-Fa-f]{16}$');
+    if (!hwidRegex.test(hwid)) {
+        await createRequest(token, ip, hwid, false, 'Invalid HWID');
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid HWID'
+        })
     }
 
     // check request client ip is equal to assigned ip
@@ -613,14 +601,38 @@ module.exports.checkToken = async(req, res, next) => {
         })
     }
 
+    // check ip exists
+    let ipExists = Token.assigned_ips.find(item => item === ip);
+    if (!ipExists) {
+        // check Token have enough ip count
+        if (Token.max_ip <= Token.assigned_ips.length) {
+            await createRequest(token, ip, hwid, false, 'IP isn\'t exists');
+            return res.status(400).json({
+                success: false,
+                message: 'IP isn\'t exists'
+            })
+        } else {
+            // add ip to assigned_ips
+            Token.assigned_ips.push(ip);
+            await Token.save();
+        }
+    }
+
     // check hwid exists
     let hwidExists = Token.assigned_hwids.find(item => item === hwid);
     if (!hwidExists) {
-        await createRequest(token, ip, hwid, false, 'HWID isn\'t exists');
-        return res.status(400).json({
-            success: false,
-            message: 'HWID isn\'t exists'
-        })
+        // check Token have enough hwid count
+        if (Token.max_hwid <= Token.assigned_hwids.length) {
+            await createRequest(token, ip, hwid, false, 'HWID isn\'t exists');
+            return res.status(400).json({
+                success: false,
+                message: 'HWID isn\'t exists'
+            })
+        } else {
+            // add hwid to assigned_hwids
+            Token.assigned_hwids.push(hwid);
+            await Token.save();
+        }
     }
 
     await createRequest(token, ip, hwid, true, 'Token is valid');
