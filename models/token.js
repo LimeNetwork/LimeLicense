@@ -14,8 +14,8 @@ const schema = new Schema({
         required: false
     },
     product: {
-        type: String,
-        required: false
+        type: Number,
+        required: true
     },
     end_date: {
         type: String,

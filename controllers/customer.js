@@ -1,42 +1,74 @@
-const Model = require('../models/customer');
+// controllers/customer.js
 
-module.exports.createCustomer = async(req, res, next) => {
-    let { name, mail, discord_id } = req.body;
+const Customer = require('../models/customer');
 
-
-    let userByDiscord = await Model.findOne({ discord_id: discord_id });
-    let userByMail = await Model.findOne({ mail: mail });
-
-    if (userByDiscord || userByMail) {
-        return res.status(404).json({
-            success: false,
-            message: 'User already exists'
-        })
-    }
-
-    if (!name || name.length < 3 || name.length > 20 || !name.match(/^[a-zA-Z0-9]+$/) || name.match(/^[0-9]+$/) || name.split(" ").length < 2 | name.split(" ").length > 3) {
-        return res.status(404).json({
-            success: false,
-            message: 'Name is not valid'
-        })
-    }
-
-    let user = new Model({
-        name: name,
-        mail: mail,
-        discord_id: discord_id
-    })
-
+// Create a new customer
+exports.createCustomer = async(req, res) => {
     try {
-        await user.save();
-        return res.status(200).json({
-            success: true,
-            message: 'User created'
-        })
-    } catch (err) {
-        return res.status(500).json({
-            success: false,
-            message: 'User not created'
-        })
+        // Check for email duplication before creating a new customer
+        let existingCustomer = await Customer.findOne({ mail: req.body.mail });
+        if (existingCustomer) {
+            return res.status(400).json({ message: 'Email already exists' });
+        }
+
+        existingCustomer = await Customer.findOne({ discord_id: req.body.discord_id });
+        if (existingCustomer) {
+            return res.status(400).json({ message: 'Discord Id already exists' });
+        }
+
+        const newCustomer = new Customer(req.body);
+        const savedCustomer = await newCustomer.save();
+        res.status(201).json(savedCustomer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-}
+};
+
+// Get all customers
+exports.getAllCustomers = async(req, res) => {
+    try {
+        const customers = await Customer.find();
+        res.status(200).json(customers);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get a specific customer by ID
+exports.getCustomerById = async(req, res) => {
+    try {
+        const customer = await Customer.findById(req.params.customerId);
+        if (!customer) {
+            return res.status(404).json({ message: 'Customer not found' });
+        }
+        res.status(200).json(customer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Update a customer by ID
+exports.updateCustomerById = async(req, res) => {
+    try {
+        const updatedCustomer = await Customer.findByIdAndUpdate(req.params.customerId, req.body, { new: true });
+        if (!updatedCustomer) {
+            return res.status(404).json({ message: 'Customer not found' });
+        }
+        res.status(200).json(updatedCustomer);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Delete a customer by ID
+exports.deleteCustomerById = async(req, res) => {
+    try {
+        const deletedCustomer = await Customer.findByIdAndDelete(req.params.customerId);
+        if (!deletedCustomer) {
+            return res.status(404).json({ message: 'Customer not found' });
+        }
+        res.status(204).send();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

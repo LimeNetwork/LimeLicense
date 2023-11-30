@@ -10,11 +10,11 @@ const schema = new Schema({
         default: ""
     },
     price: {
-        type: Float32Array,
+        type: mongoose.Decimal128,
         required: true,
     },
     discountedPrice: {
-        type: Float32Array,
+        type: mongoose.Decimal128,
         default: 0
     },
     discountActive: {

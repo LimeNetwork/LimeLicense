@@ -17,6 +17,10 @@ const schema = new Schema({
         type: String,
         required: true
     },
+    product: {
+        type: Number,
+        required: true
+    },
     message: {
         type: String,
         required: true

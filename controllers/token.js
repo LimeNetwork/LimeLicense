@@ -1,6 +1,7 @@
 const TokenModel = require('../models/token');
 const CustomerModel = require('../models/customer');
 const RequestModel = require('../models/request');
+const ProductModel = require('../models/product');
 
 async function uuidv4() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -11,16 +12,8 @@ async function uuidv4() {
 }
 
 module.exports.generateToken = async(req, res, next) => {
-    let { user, end_date } = req.body;
+    let { user, product, end_date } = req.body;
     try {
-
-        let customer = await CustomerModel.findOne({ _id: user });
-        if (!customer) {
-            return res.status(404).json({
-                success: false,
-                message: 'Customer not found'
-            })
-        }
 
         const token = await uuidv4();
 
@@ -35,11 +28,62 @@ module.exports.generateToken = async(req, res, next) => {
             }
         }
 
-        const Token = new TokenModel({
+        let body = {
             value: token,
-            user: user,
             end_date: end_date || 'never'
-        })
+        };
+
+        if (product) {
+            let Product = await ProductModel.findOne({ _id: product });
+            if (!Product) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Product not found'
+                })
+            }
+            body.product = product;
+        }
+
+        if (user) {
+            let customer = await CustomerModel.findOne({ _id: user });
+            if (!customer) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Customer not found'
+                })
+            }
+
+            // check customer is active
+            if (!customer.is_active) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Customer is not active'
+                })
+            }
+
+            // check customer have product
+            let productExists = customer.products.find(item => item === product);
+            if (!productExists) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Customer doesn\'t have product'
+                })
+            }
+
+            // check customer.tokens have token
+            let tokenExists = customer.tokens.find(item => item.value === token);
+            if (tokenExists) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Customer already have this token'
+                })
+            }
+
+            body.user = customer._id;
+        }
+
+
+        const Token = new TokenModel()
 
         try {
             await Token.save();
@@ -70,7 +114,7 @@ module.exports.generateToken = async(req, res, next) => {
 
 // massCreate only creates token and saves don't push to customer get count from body
 module.exports.massCreate = async(req, res, next) => {
-    let { count, end_date } = req.body;
+    let { count, product, end_date } = req.body;
 
     let tokens = [];
 
@@ -85,6 +129,9 @@ module.exports.massCreate = async(req, res, next) => {
         }
     }
 
+    if (product) {
+        let Product = await ProductModel.findOne({ _id: product });
+    }
     for (let i = 0; i < count; i++) {
         const token = await uuidv4();
 
@@ -341,6 +388,88 @@ module.exports.assignHWID = async(req, res, next) => {
     })
 }
 
+module.exports.assignToken = async(req, res, next) => {
+    let { token, user } = req.body;
+
+    let Token = await TokenModel.findOne({ value: token });
+    if (!Token) {
+        return res.status(404).json({
+            success: false,
+            message: 'Token not found'
+        })
+    }
+
+    let User = await CustomerModel.findOne({ _id: Token.user });
+    if (!User) {
+        return res.status(404).json({
+            success: false,
+            message: 'User not found'
+        })
+    }
+
+    // check user is active
+    if (!User.is_active) {
+        return res.status(400).json({
+            success: false,
+            message: 'User is not active'
+        })
+    }
+
+    // check user have product
+    let productExists = User.products.find(item => item === Token.product);
+    if (!productExists) {
+        return res.status(400).json({
+            success: false,
+            message: 'User doesn\'t have product'
+        })
+    }
+
+    // check user.tokens have token
+    let tokenExists = User.tokens.find(item => item.value === token);
+    if (tokenExists) {
+        return res.status(400).json({
+            success: false,
+            message: 'User already have this token'
+        })
+    }
+
+    // check token is active
+    if (!Token.is_active) {
+        return res.status(400).json({
+            success: false,
+            message: 'Token is not active'
+        })
+    }
+
+    // check token end_date
+    if (Token.end_date !== 'never') {
+        let date = new Date(Token.end_date);
+        if (date < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token is expired'
+            })
+        }
+    }
+
+    // update customer with push to tokens array
+    User.tokens.push(Token.toObject());
+    await User.save();
+
+    Token.user = User._id;
+    await Token.save();
+
+    return res.status(200).json({
+        success: true,
+        message: 'Token assigned successfully',
+        data: {
+            user: User.toObject(),
+            token: Token.toObject()
+        }
+    })
+}
+
+
 module.exports.removeIp = async(req, res, next) => {
     let { token, ip } = req.body;
 
@@ -527,11 +656,12 @@ module.exports.updateToken = async(req, res, next) => {
     })
 }
 
-async function createRequest(token, ip, hwid, valid, message) {
+async function createRequest(token, ip, hwid, product, valid, message) {
     const Request = new RequestModel({
         value: token,
         ip: ip,
         hwid: hwid,
+        product: product,
         authorized: valid,
         message: message
     })
@@ -540,11 +670,11 @@ async function createRequest(token, ip, hwid, valid, message) {
 }
 
 module.exports.checkToken = async(req, res, next) => {
-    let { token, ip, hwid } = req.body;
+    let { token, ip, hwid, product } = req.body;
 
     let Token = await TokenModel.findOne({ value: token });
     if (!Token) {
-        await createRequest(token, ip, hwid, false, 'Token not found');
+        await createRequest(token, ip, hwid, product, false, 'Token not found');
         return res.status(404).json({
             success: false,
             message: 'Token not found'
@@ -553,7 +683,7 @@ module.exports.checkToken = async(req, res, next) => {
 
     // check token is active
     if (!Token.is_active) {
-        await createRequest(token, ip, hwid, false, 'Token is not active');
+        await createRequest(token, ip, hwid, product, false, 'Token is not active');
         return res.status(400).json({
             success: false,
             message: 'Token is not active'
@@ -564,7 +694,7 @@ module.exports.checkToken = async(req, res, next) => {
     if (Token.end_date !== 'never') {
         let date = new Date(Token.end_date);
         if (date < new Date()) {
-            await createRequest(token, ip, hwid, false, 'Token is expired');
+            await createRequest(token, ip, hwid, product, false, 'Token is expired');
             return res.status(400).json({
                 success: false,
                 message: 'Token is expired'
@@ -575,7 +705,7 @@ module.exports.checkToken = async(req, res, next) => {
     // check if ip is valid
     let ipRegex = new RegExp('^([0-9]{1,3}\.){3}[0-9]{1,3}$');
     if (!ipRegex.test(ip)) {
-        await createRequest(token, ip, hwid, false, 'Invalid IP');
+        await createRequest(token, ip, hwid, product, false, 'Invalid IP');
         return res.status(400).json({
             success: false,
             message: 'Invalid IP'
@@ -585,7 +715,7 @@ module.exports.checkToken = async(req, res, next) => {
     // check if hwid is valid
     let hwidRegex = new RegExp('^[0-9A-Fa-f]{16}$');
     if (!hwidRegex.test(hwid)) {
-        await createRequest(token, ip, hwid, false, 'Invalid HWID');
+        await createRequest(token, ip, hwid, product, false, 'Invalid HWID');
         return res.status(400).json({
             success: false,
             message: 'Invalid HWID'
@@ -594,7 +724,7 @@ module.exports.checkToken = async(req, res, next) => {
 
     // check request client ip is equal to assigned ip
     if (ip !== req.ip) {
-        await createRequest(token, ip, hwid, false, 'IP isn\'t equal to assigned ip');
+        await createRequest(token, ip, hwid, product, false, 'IP isn\'t equal to assigned ip');
         return res.status(400).json({
             success: false,
             message: 'IP isn\'t valid'
@@ -606,7 +736,7 @@ module.exports.checkToken = async(req, res, next) => {
     if (!ipExists) {
         // check Token have enough ip count
         if (Token.max_ip <= Token.assigned_ips.length) {
-            await createRequest(token, ip, hwid, false, 'IP isn\'t exists');
+            await createRequest(token, ip, hwid, product, false, 'IP isn\'t exists');
             return res.status(400).json({
                 success: false,
                 message: 'IP isn\'t exists'
@@ -623,7 +753,7 @@ module.exports.checkToken = async(req, res, next) => {
     if (!hwidExists) {
         // check Token have enough hwid count
         if (Token.max_hwid <= Token.assigned_hwids.length) {
-            await createRequest(token, ip, hwid, false, 'HWID isn\'t exists');
+            await createRequest(token, ip, hwid, product, false, 'HWID isn\'t exists');
             return res.status(400).json({
                 success: false,
                 message: 'HWID isn\'t exists'
@@ -635,7 +765,47 @@ module.exports.checkToken = async(req, res, next) => {
         }
     }
 
-    await createRequest(token, ip, hwid, true, 'Token is valid');
+    if (Token.user) {
+        let user = await CustomerModel.findOne({ _id: Token.user });
+        if (!user) {
+            await createRequest(token, ip, hwid, product, false, 'User not found');
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            })
+        }
+
+        // check user is active
+        if (!user.is_active) {
+            await createRequest(token, ip, hwid, product, false, 'User is not active');
+            return res.status(400).json({
+                success: false,
+                message: 'User is not active'
+            })
+        }
+
+        // check user have product
+        let productExists = user.products.find(item => item === product);
+
+        if (!productExists) {
+            await createRequest(token, ip, hwid, product, false, 'User doesn\'t have product');
+            return res.status(400).json({
+                success: false,
+                message: 'User doesn\'t have product'
+            })
+        }
+
+        // check Token product equals to user product
+        if (Token.product !== product) {
+            await createRequest(token, ip, hwid, product, false, 'Token product doesn\'t equal to user product');
+            return res.status(400).json({
+                success: false,
+                message: 'Token product doesn\'t equal to user product'
+            })
+        }
+
+    }
+    await createRequest(token, ip, hwid, product, true, 'Token is valid');
     return res.status(200).json({
         success: true,
         message: 'Token is valid'

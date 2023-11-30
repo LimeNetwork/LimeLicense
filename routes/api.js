@@ -60,7 +60,7 @@ function checkAuthToken(req, res, next) {
     next();
 }
 
-router.use('/product', authToken, tokenController.productRoute);
+router.use('/product', authToken, productRoute);
 router.use('/customer', authToken, customerRoute);
 router.use('/token', authToken, tokenRoute);
 

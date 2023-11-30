@@ -15,6 +15,4 @@ router.post('/assignHwid', controller.assignHWID);
 router.post('/removeIp', controller.removeIp);
 router.post('/removeHwid', controller.removeHWID);
 
-router.post('/check', controller.checkToken);
-
 module.exports = router;

@@ -71,8 +71,10 @@ function haltOnTimedout(req, res, next) {
     }
 }
 app.use(haltOnTimedout);
+
 // Set up Routers
 app.use('/api', apiRouter); // API Router
+
 app.use(haltOnTimedout);
 
 app.use(haltOnTimedout);
