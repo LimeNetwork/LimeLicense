@@ -22,11 +22,11 @@ const schema = new Schema({
         default: []
     },
     price: {
-        type: mongoose.Decimal128,
+        type: Number,
         required: true,
     },
     discountedPrice: {
-        type: mongoose.Decimal128,
+        type: Number,
         default: 0
     },
     discountActive: {

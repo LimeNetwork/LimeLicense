@@ -5,11 +5,11 @@ const productController = require('../controllers/product');
 // Create a new product
 router.post('/create', productController.createProduct);
 
-// Get all products
-router.get('/', productController.getAllProducts);
-
 // Get a specific product by ID
 router.get('/:productId', productController.getProductById);
+
+// Get all products
+router.get('/', productController.getAllProducts);
 
 // Update a product by ID
 router.put('/:productId', productController.updateProductById);

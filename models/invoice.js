@@ -6,15 +6,15 @@ const schema = new Schema({
         required: true,
     },
     total: {
-        type: Float32Array,
+        type: Number,
         required: true,
     },
     subtotal: {
-        type: Float32Array,
+        type: Number,
         required: true,
     },
     discount: {
-        type: Float32Array,
+        type: Number,
         required: true,
     },
     products: {
