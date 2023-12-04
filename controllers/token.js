@@ -82,8 +82,7 @@ module.exports.generateToken = async(req, res, next) => {
             body.user = customer._id;
         }
 
-
-        const Token = new TokenModel()
+        const Token = new TokenModel(body)
 
         try {
             await Token.save();
@@ -94,9 +93,12 @@ module.exports.generateToken = async(req, res, next) => {
                 error: error.message
             })
         }
-        // update customer with push to tokens array
-        customer.tokens.push(Token.toObject());
-        await customer.save();
+
+        if (user) {
+            // update customer with push to tokens array
+            customer.tokens.push(Token.toObject());
+            await customer.save();
+        }
 
         return res.status(200).json({
             success: true,
@@ -678,6 +680,14 @@ async function createRequest(token, ip, hwid, product, valid, message) {
 module.exports.checkToken = async(req, res, next) => {
     let { token, ip, hwid, product } = req.body;
 
+    if (!token || !ip || !hwid || !product) {
+        await createRequest(token || "null", ip || "null", hwid || "null", product || "null", false, 'Missing parameter');
+        return res.status(400).json({
+            success: false,
+            message: 'Missing parameter'
+        })
+    }
+
     let Token = await TokenModel.findOne({ value: token });
     if (!Token) {
         await createRequest(token, ip, hwid, product, false, 'Token not found');
@@ -719,6 +729,7 @@ module.exports.checkToken = async(req, res, next) => {
     }
 
     // check if hwid is valid
+    // example hwid: 1234567890ABCDEF
     let hwidRegex = new RegExp('^[0-9A-Fa-f]{16}$');
     if (!hwidRegex.test(hwid)) {
         await createRequest(token, ip, hwid, product, false, 'Invalid HWID');
@@ -729,7 +740,8 @@ module.exports.checkToken = async(req, res, next) => {
     }
 
     // check request client ip is equal to assigned ip
-    if (ip !== req.ip) {
+    if (ip !== req.ip.replace('::ffff:', '')) {
+        console.log(req.ip.replace('::ffff:', ''), ip)
         await createRequest(token, ip, hwid, product, false, 'IP isn\'t equal to assigned ip');
         return res.status(400).json({
             success: false,

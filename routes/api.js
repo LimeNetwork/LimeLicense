@@ -33,8 +33,7 @@ router.use(function(req, res, next) {
 
 router.use('/product', authToken, productRoute);
 router.use('/customer', authToken, customerRoute);
-router.use('/token', authToken, tokenRoute);
-
 router.post('/token/check', checkAuthToken, tokenController.checkToken);
+router.use('/token', authToken, tokenRoute);
 
 module.exports = router;
