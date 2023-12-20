@@ -29,15 +29,7 @@ const schema = new Schema({
         type: Number,
         default: 1
     },
-    max_hwid: {
-        type: Number,
-        default: 1
-    },
     assigned_ips: {
-        type: Array,
-        default: []
-    },
-    assigned_hwids: {
         type: Array,
         default: []
     }

@@ -8,15 +8,6 @@ router.post('/create', customerController.createCustomer);
 // Get all customers
 router.get('/', customerController.getAllCustomers);
 
-// Get a specific customer by ID
-router.get('/:customerId', customerController.getCustomerById);
-
-// Update a customer by ID
-router.put('/:customerId', customerController.updateCustomerById);
-
-// Delete a customer by ID
-router.delete('/:customerId', customerController.deleteCustomerById);
-
 // Get a specific customer by Discord ID
 router.get('/discord/:discordId', customerController.getCustomerByDiscordId);
 
@@ -31,5 +22,14 @@ router.post('/addToken', customerController.addTokenToCustomer);
 
 // removeTokenFromCustomer
 router.post('/removeToken', customerController.removeTokenFromCustomer);
+
+// Get a specific customer by ID
+router.get('/:customerId', customerController.getCustomerById);
+
+// Update a customer by ID
+router.put('/:customerId', customerController.updateCustomerById);
+
+// Delete a customer by ID
+router.delete('/:customerId', customerController.deleteCustomerById);
 
 module.exports = router;

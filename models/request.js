@@ -13,10 +13,6 @@ const schema = new Schema({
         type: String,
         required: true
     },
-    hwid: {
-        type: String,
-        required: true
-    },
     product: {
         type: String,
         required: true

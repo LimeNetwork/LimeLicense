@@ -184,25 +184,6 @@ module.exports.getTokens = async(req, res, next) => {
             }
             delete filter.ip;
         }
-
-        if (filter.keys().contains('hwid')) {
-
-            // check    hwid is valid
-            let hwidRegex = new RegExp('^[0-9A-Fa-f]{16}$');
-            if (!hwidRegex.test(filter.hwid)) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid HWID'
-                })
-            }
-
-            filter.assigned_hwids = {
-                $in: [filter.hwid]
-            }
-            delete filter.hwid;
-        }
-
-
     }
 
     // if no page and limit return all tokens
@@ -302,76 +283,6 @@ module.exports.assignIp = async(req, res, next) => {
     }
 
     Token.assigned_ips.push(ip);
-
-    try {
-        await Token.save();
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Internal Server Error',
-            error: error.message
-        })
-    }
-
-    return res.status(200).json({
-        success: true,
-        message: 'Token updated successfully',
-        data: Token.toObject()
-    })
-}
-
-module.exports.assignHWID = async(req, res, next) => {
-    let { token, hwid } = req.body;
-
-    let Token = await TokenModel.findOne({ value: token });
-    if (!Token) {
-        return res.status(404).json({
-            success: false,
-            message: 'Token not found'
-        })
-    }
-
-    if (Token.is_active === false) {
-        return res.status(400).json({
-            success: false,
-            message: 'Token is not active'
-        })
-    }
-
-    if (Token.is_changeable === false) {
-        return res.status(400).json({
-            success: false,
-            message: 'Token is not changeable'
-        })
-    }
-
-    // check max_ip and assigned_ips
-    if (Token.max_hwid <= Token.assigned_hwids.length) {
-        return res.status(400).json({
-            success: false,
-            message: 'Max IP limit reached'
-        })
-    }
-
-    // check hwid exists
-    let hwidExists = Token.assigned_hwids.find(item => item === hwid);
-    if (hwidExists) {
-        return res.status(400).json({
-            success: false,
-            message: 'HWID already exists'
-        })
-    }
-
-    // check hwid is valid
-    let hwidRegex = new RegExp('^[0-9A-Fa-f]{16}$');
-    if (!hwidRegex.test(hwid)) {
-        return res.status(400).json({
-            success: false,
-            message: 'Invalid HWID'
-        })
-    }
-
-    Token.assigned_hwids.push(hwid);
 
     try {
         await Token.save();
@@ -531,59 +442,6 @@ module.exports.removeIp = async(req, res, next) => {
     })
 }
 
-module.exports.removeHWID = async(req, res, next) => {
-    let { token, hwid } = req.body;
-
-    let Token = await TokenModel.findOne({ value: token });
-    if (!Token) {
-        return res.status(404).json({
-            success: false,
-            message: 'Token not found'
-        })
-    }
-
-    if (Token.is_active === false) {
-        return res.status(400).json({
-            success: false,
-            message: 'Token is not active'
-        })
-    }
-
-    if (Token.is_changeable === false) {
-        return res.status(400).json({
-            success: false,
-            message: 'Token is not changeable'
-        })
-    }
-
-    // check ip exists
-    let hwidExists = Token.assigned_hwids.find(item => item === hwid);
-    if (!hwidExists) {
-        return res.status(400).json({
-            success: false,
-            message: 'HWID isn\'t exists'
-        })
-    }
-
-    Token.assigned_hwids = Token.assigned_ips.filter(item => item !== hwid);
-
-    try {
-        await Token.save();
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Internal Server Error',
-            error: error.message
-        })
-    }
-
-    return res.status(200).json({
-        success: true,
-        message: 'Token updated successfully',
-        data: Token.toObject()
-    })
-}
-
 module.exports.deleteToken = async(req, res, next) => {
     let { token } = req.body;
 
@@ -622,7 +480,7 @@ module.exports.updateToken = async(req, res, next) => {
         })
     }
 
-    let { max_ip, max_hwid, is_active, end_date } = req.body;
+    let { max_ip, is_active, end_date } = req.body;
 
     // control end_date if it's valid
     if (end_date) {
@@ -643,7 +501,6 @@ module.exports.updateToken = async(req, res, next) => {
     }
 
     Token.max_ip = max_ip || Token.max_ip;
-    Token.max_hwid = max_hwid || Token.max_hwid;
     Token.is_active = is_active || Token.is_active;
     Token.end_date = end_date || Token.end_date;
 
@@ -664,11 +521,10 @@ module.exports.updateToken = async(req, res, next) => {
     })
 }
 
-async function createRequest(token, ip, hwid, product, valid, message) {
+async function createRequest(token, ip, product, valid, message) {
     const Request = new RequestModel({
         value: token,
         ip: ip,
-        hwid: hwid,
         product: product,
         authorized: valid,
         message: message
@@ -678,10 +534,10 @@ async function createRequest(token, ip, hwid, product, valid, message) {
 }
 
 module.exports.checkToken = async(req, res, next) => {
-    let { token, ip, hwid, product } = req.body;
+    let { token, ip, product } = req.body;
 
-    if (!token || !ip || !hwid || !product) {
-        await createRequest(token || "null", ip || "null", hwid || "null", product || "null", false, 'Missing parameter');
+    if (!token || !ip || !product) {
+        await createRequest(token || "null", ip || "null", product || "null", false, 'Missing parameter');
         return res.status(400).json({
             success: false,
             message: 'Missing parameter'
@@ -728,17 +584,6 @@ module.exports.checkToken = async(req, res, next) => {
         })
     }
 
-    // check if hwid is valid
-    // example hwid: 1234567890ABCDEF
-    let hwidRegex = new RegExp('^[0-9A-Fa-f]{16}$');
-    if (!hwidRegex.test(hwid)) {
-        await createRequest(token, ip, hwid, product, false, 'Invalid HWID');
-        return res.status(400).json({
-            success: false,
-            message: 'Invalid HWID'
-        })
-    }
-
     // check request client ip is equal to assigned ip
     if (ip !== req.ip.replace('::ffff:', '')) {
         console.log(req.ip.replace('::ffff:', ''), ip)
@@ -766,27 +611,10 @@ module.exports.checkToken = async(req, res, next) => {
         }
     }
 
-    // check hwid exists
-    let hwidExists = Token.assigned_hwids.find(item => item === hwid);
-    if (!hwidExists) {
-        // check Token have enough hwid count
-        if (Token.max_hwid <= Token.assigned_hwids.length) {
-            await createRequest(token, ip, hwid, product, false, 'HWID isn\'t exists');
-            return res.status(400).json({
-                success: false,
-                message: 'HWID isn\'t exists'
-            })
-        } else {
-            // add hwid to assigned_hwids
-            Token.assigned_hwids.push(hwid);
-            await Token.save();
-        }
-    }
-
     if (Token.user) {
         let user = await CustomerModel.findOne({ _id: Token.user });
         if (!user) {
-            await createRequest(token, ip, hwid, product, false, 'User not found');
+            await createRequest(token, ip, product, false, 'User not found');
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
@@ -795,7 +623,7 @@ module.exports.checkToken = async(req, res, next) => {
 
         // check user is active
         if (!user.is_active) {
-            await createRequest(token, ip, hwid, product, false, 'User is not active');
+            await createRequest(token, ip, product, false, 'User is not active');
             return res.status(400).json({
                 success: false,
                 message: 'User is not active'
@@ -806,7 +634,7 @@ module.exports.checkToken = async(req, res, next) => {
         let productExists = user.products.find(item => item === product);
 
         if (!productExists) {
-            await createRequest(token, ip, hwid, product, false, 'User doesn\'t have product');
+            await createRequest(token, ip, product, false, 'User doesn\'t have product');
             return res.status(400).json({
                 success: false,
                 message: 'User doesn\'t have product'
@@ -815,7 +643,7 @@ module.exports.checkToken = async(req, res, next) => {
 
         // check Token product equals to user product
         if (Token.product !== product) {
-            await createRequest(token, ip, hwid, product, false, 'Token product doesn\'t equal to user product');
+            await createRequest(token, ip, product, false, 'Token product doesn\'t equal to user product');
             return res.status(400).json({
                 success: false,
                 message: 'Token product doesn\'t equal to user product'
@@ -823,7 +651,7 @@ module.exports.checkToken = async(req, res, next) => {
         }
 
     }
-    await createRequest(token, ip, hwid, product, true, 'Token is valid');
+    await createRequest(token, ip, product, true, 'Token is valid');
     return res.status(200).json({
         success: true,
         message: 'Token is valid'
